@@ -1,0 +1,50 @@
+{ "frames": {
+   "idleAvatar0": {
+    "frame": { "x": 0, "y": 0, "w": 45, "h": 57 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 45, "h": 57 },
+    "sourceSize": { "w": 45, "h": 57 },
+    "duration": 100
+   },
+   "idleAvatar1": {
+    "frame": { "x": 45, "y": 0, "w": 45, "h": 57 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 45, "h": 57 },
+    "sourceSize": { "w": 45, "h": 57 },
+    "duration": 100
+   },
+   "idleAvatar2": {
+    "frame": { "x": 90, "y": 0, "w": 45, "h": 57 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 45, "h": 57 },
+    "sourceSize": { "w": 45, "h": 57 },
+    "duration": 100
+   },
+   "idleAvatar3": {
+    "frame": { "x": 135, "y": 0, "w": 45, "h": 57 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 45, "h": 57 },
+    "sourceSize": { "w": 45, "h": 57 },
+    "duration": 100
+   }
+ },
+ "meta": {
+  "app": "https://www.aseprite.org/",
+  "version": "1.3.2  ",
+  "image": "avatarIdle.png",
+  "format": "RGBA8888",
+  "size": { "w": 180, "h": 57 },
+  "scale": "1",
+  "frameTags": [
+  ],
+  "layers": [
+   { "name": "Layer 1", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}
