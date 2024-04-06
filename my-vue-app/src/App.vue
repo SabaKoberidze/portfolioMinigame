@@ -6,7 +6,9 @@
 import { AnimatedSprite, Application, Assets, Container, Sprite, Spritesheet, Texture} from 'pixi.js';
 import {ref, onMounted } from 'vue';
 let pixiContainer = ref()
-
+let gameScale: number
+let gameWidth: number = 1920
+let gameHeight: number = 1080
 
 var keyState: any[] = [];
 const KEY_UP = 38;
@@ -14,11 +16,12 @@ const KEY_DOWN = 40;
 const KEY_LEFT = 37;
 const KEY_RIGHT = 39;
 const MOVE_SPEED = 5;
+let app: Application
 let animatedAvatar: AnimatedSprite
 let idleAvatar: AnimatedSprite
 let rockBackground: Sprite
 let avatarContainer: Container
-// create a logging function
+
 const keyEventLogger =  function (e: any, type: boolean) { 
   (keyState[e.keyCode] as any) = e.type == 'keydown';
 }
@@ -32,29 +35,32 @@ window.addEventListener("keyup",  (e: any)=>{
 });
 
 
-// define something to move
-var player = {y : 100, x: 100};
-
-
-// in the main loop;
-
 onMounted(async () => {
-    const app = new Application();
-    await app.init({ width: 1000, height: 1000, background:'white'});
+    app = new Application();
+    await app.init({
+      width: gameWidth, 
+      height: gameHeight, 
+      background:'white',
+      resolution: devicePixelRatio,
+      autoDensity: true,
+      });
     // Append the PixiJS canvas to the component's container
     pixiContainer.value.appendChild(app.canvas);
     await preload()
 
-
-    rockBackground = Sprite.from('rockGround')
+    resize() 
+    
+    rockBackground = Sprite.from('floor1')
+    rockBackground.setSize(gameWidth, gameWidth)    
     rockBackground.anchor.set(0,0)
-    rockBackground.setSize(1000, 1000)    
     app.stage.addChild(rockBackground);
-     
+    
     avatarContainer = new Container()
+
     app.stage.addChild(avatarContainer)
-    avatarContainer.x = app.canvas.width / 2 - animatedAvatar.width / 2
-    avatarContainer.y = app.canvas.height / 2 - animatedAvatar.height / 2
+    avatarContainer.scale.set(0.7)
+    avatarContainer.x = gameWidth/2 -  (avatarContainer.width)/ 2
+    avatarContainer.y = gameHeight/2 -  (avatarContainer.height) / 2
 
     animatedAvatar.anchor.set(0.5,0.5)
     animatedAvatar.animationSpeed = MOVE_SPEED/10
@@ -62,8 +68,7 @@ onMounted(async () => {
     idleAvatar.animationSpeed = 0.05
     
     avatarContainer.addChild(idleAvatar)
-    avatarContainer.scale.set(3)
-
+    idleAvatar.play()
     //app.stage.addChild(animatedAvatar);
 
 
@@ -76,8 +81,11 @@ onMounted(async () => {
 
 
 
-    //app.start();
+    window.addEventListener("resize", (event) => {
+      resize()
+    });
 })
+
 function movingStateChecker(key: number, keyDown: boolean) {
   let moving = false
   keyState.forEach((state,index) => {
@@ -130,6 +138,7 @@ async function preload()
     { alias: 'avatarIdle', src: 'assets/avatar/avatarIdle.json' }, 
     { alias: 'avatarAnim', src: 'assets/avatar/avatar.json' },  
     { alias: 'rockGround', src: 'assets/backgrounds/rockGround.png' },    
+    { alias: 'floor1', src: 'assets/backgrounds/floor1.png' },    
   ];
   await Assets.load(assets);
 
@@ -145,6 +154,10 @@ function loadAnimations(animationFormat: string): AnimatedSprite {
   })
   return new AnimatedSprite(frames)
 }
-
+function resize(){
+  gameScale = innerWidth / 1920
+  app.renderer.resize(innerWidth, innerHeight * gameScale)
+  app.stage.scale.set(gameScale)
+}
 </script>
 
