@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { AnimatedSprite, Application, Assets, Container, Sprite, Spritesheet, Texture} from 'pixi.js';
+import { AnimatedSprite, Application, Assets, Container, Sprite, Texture} from 'pixi.js';
 import {ref, onMounted } from 'vue';
 let pixiContainer = ref()
 let gameScale: number
@@ -15,19 +15,25 @@ const KEY_UP = 38;
 const KEY_DOWN = 40;
 const KEY_LEFT = 37;
 const KEY_RIGHT = 39;
+const SPACEBAR = 32;
 const MOVE_SPEED = 5;
 let app: Application
 let animatedAvatar: AnimatedSprite
 let idleAvatar: AnimatedSprite
+let basicAttack: AnimatedSprite
 let rockBackground: Sprite
 let avatarContainer: Container
 
 const keyEventLogger =  function (e: any, type: boolean) { 
-  (keyState[e.keyCode] as any) = e.type == 'keydown';
+  (keyState[e.keyCode] as any) = e.type == 'keydown';  
 }
 window.addEventListener("keydown", (e: any)=>{
   keyEventLogger(e, true)  
   movingStateChecker(e.keyCode, true)
+  if(keyState[SPACEBAR]) {
+    basicAttack.alpha = 1
+    !basicAttack.playing && basicAttack.gotoAndPlay(0)    
+  }
 });
 window.addEventListener("keyup",  (e: any)=>{
   keyEventLogger(e, false)
@@ -58,9 +64,10 @@ onMounted(async () => {
     avatarContainer = new Container()
 
     app.stage.addChild(avatarContainer)
-    avatarContainer.scale.set(0.7)
+    avatarContainer.scale.set(1)
     avatarContainer.x = gameWidth/2 -  (avatarContainer.width)/ 2
     avatarContainer.y = gameHeight/2 -  (avatarContainer.height) / 2
+    avatarContainer.sortableChildren = true
 
     animatedAvatar.anchor.set(0.5,0.5)
     animatedAvatar.animationSpeed = MOVE_SPEED/10
@@ -68,16 +75,27 @@ onMounted(async () => {
     idleAvatar.animationSpeed = 0.05
     
     avatarContainer.addChild(idleAvatar)
+    
+    basicAttack.anchor.set(0, 0.5)
+    basicAttack.scale.set(1, 1)
+    basicAttack.alpha = 0
+    basicAttack.x = 0
+    basicAttack.y = avatarContainer.scale.y * 10
+    basicAttack.loop = false
+    basicAttack.animationSpeed = 1.5
+
+    basicAttack.onComplete = () => { 
+      basicAttack.alpha = 0
+    }
+    
     idleAvatar.play()
-    //app.stage.addChild(animatedAvatar);
 
-
-    //// Animate the sprite
+    // Animate the sprite
     app.ticker.add(() => {
       //bunny.rotation += 0.01;
-      movement(avatarContainer)      
+      movement(avatarContainer)           
     });
-    //// define keys and an array to keep key states
+    // define keys and an array to keep key states
 
 
 
@@ -94,12 +112,14 @@ function movingStateChecker(key: number, keyDown: boolean) {
     }
   })
   if(moving){
-    avatarContainer.removeChild(avatarContainer.children[0]);
+    avatarContainer.removeChild(idleAvatar)
     avatarContainer.addChild(animatedAvatar);
+    avatarContainer.addChildAt(basicAttack,1)
     animatedAvatar.play()
   }else{
-    avatarContainer.removeChild(avatarContainer.children[0]);
+    avatarContainer.removeChild(animatedAvatar);
     avatarContainer.addChild(idleAvatar);
+    avatarContainer.addChildAt(basicAttack,1)
     idleAvatar.play()
   }
   if(keyDown){
@@ -130,13 +150,11 @@ function movement(bunny: Container) {
         (rockBackground.width + rockBackground.x >= bunny.x + bunny.width / 3) && (bunny.x += MOVE_SPEED);
       }
 }
-async function preload()
-{
-  const assets = [
-    { alias: 'bunny', src: 'assets/bunny.png' },  
-    { alias: 'avatar', src: 'assets/avatar/avatar.png' },    
-    { alias: 'avatarIdle', src: 'assets/avatar/avatarIdle.json' }, 
-    { alias: 'avatarAnim', src: 'assets/avatar/avatar.json' },  
+async function preload() {
+  const assets = [ 
+    { alias: 'avatarIdle', src: 'assets/avatar/idleAvatar.json' }, 
+    { alias: 'avatarAnim', src: 'assets/avatar/avatarWalk.json' }, 
+    { alias: 'basicAttack', src: 'assets/avatar/basicAttack.json' },   
     { alias: 'rockGround', src: 'assets/backgrounds/rockGround.png' },    
     { alias: 'floor1', src: 'assets/backgrounds/floor1.png' },    
   ];
@@ -144,6 +162,7 @@ async function preload()
 
   animatedAvatar = loadAnimations('avatarAnim') 
   idleAvatar = loadAnimations('avatarIdle')
+  basicAttack = loadAnimations('basicAttack')
 }
 function loadAnimations(animationFormat: string): AnimatedSprite {
   let anim: any = Texture.from(animationFormat)
