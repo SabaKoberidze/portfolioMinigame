@@ -3,43 +3,29 @@
 </template>
 
 <script setup lang="ts">
-import { AnimatedSprite, Application, Assets, Container, Sprite, Texture} from 'pixi.js';
+import { AnimatedSprite, Application, Assets, Sprite, Texture} from 'pixi.js';
 import {ref, onMounted } from 'vue';
+import { Avatar } from './gameComponents/avatar';
+import {Backgrounds} from './gameComponents/background'
+import { gameConfig } from './stores/gameConfigStore'
 let pixiContainer = ref()
 let gameScale: number
-let gameWidth: number = 1920
-let gameHeight: number = 1080
-
+let gameWidth: number 
+let gameHeight: number
 var keyState: any[] = [];
-const KEY_UP = 38;
-const KEY_DOWN = 40;
-const KEY_LEFT = 37;
-const KEY_RIGHT = 39;
-const SPACEBAR = 32;
-const MOVE_SPEED = 5;
 let app: Application
+let avatar: Avatar
+let backgrounds: Backgrounds
 let animatedAvatar: AnimatedSprite
 let idleAvatar: AnimatedSprite
 let basicAttack: AnimatedSprite
-let rockBackground: Sprite
-let avatarContainer: Container
+let gameConfigStore = gameConfig()
+gameWidth = gameConfigStore.width
+gameHeight = gameConfigStore.height
 
 const keyEventLogger =  function (e: any, type: boolean) { 
   (keyState[e.keyCode] as any) = e.type == 'keydown';  
 }
-window.addEventListener("keydown", (e: any)=>{
-  keyEventLogger(e, true)  
-  movingStateChecker(e.keyCode, true)
-  if(keyState[SPACEBAR]) {
-    basicAttack.alpha = 1
-    !basicAttack.playing && basicAttack.gotoAndPlay(0)    
-  }
-});
-window.addEventListener("keyup",  (e: any)=>{
-  keyEventLogger(e, false)
-  movingStateChecker(e.keyCode, false)
-});
-
 
 onMounted(async () => {
     app = new Application();
@@ -50,105 +36,29 @@ onMounted(async () => {
       resolution: devicePixelRatio,
       autoDensity: true,
       });
-    // Append the PixiJS canvas to the component's container
     pixiContainer.value.appendChild(app.canvas);
     await preload()
-
-    resize() 
-    
-    rockBackground = Sprite.from('floor1')
-    rockBackground.setSize(gameWidth, gameWidth)    
-    rockBackground.anchor.set(0,0)
-    app.stage.addChild(rockBackground);
-    
-    avatarContainer = new Container()
-
-    app.stage.addChild(avatarContainer)
-    avatarContainer.scale.set(1)
-    avatarContainer.x = gameWidth/2 -  (avatarContainer.width)/ 2
-    avatarContainer.y = gameHeight/2 -  (avatarContainer.height) / 2
-    avatarContainer.sortableChildren = true
-
-    animatedAvatar.anchor.set(0.5,0.5)
-    animatedAvatar.animationSpeed = MOVE_SPEED/10
-    idleAvatar.anchor.set(0.5,0.5)
-    idleAvatar.animationSpeed = 0.05
-    
-    avatarContainer.addChild(idleAvatar)
-    
-    basicAttack.anchor.set(0, 0.5)
-    basicAttack.scale.set(1, 1)
-    basicAttack.alpha = 0
-    basicAttack.x = 0
-    basicAttack.y = avatarContainer.scale.y * 10
-    basicAttack.loop = false
-    basicAttack.animationSpeed = 1.5
-
-    basicAttack.onComplete = () => { 
-      basicAttack.alpha = 0
-    }
-    
-    idleAvatar.play()
-
-    // Animate the sprite
+    backgrounds = new Backgrounds(app)
+    avatar = new Avatar(app, animatedAvatar, idleAvatar, basicAttack)
+    addEvents()
     app.ticker.add(() => {
-      //bunny.rotation += 0.01;
-      movement(avatarContainer)           
-    });
-    // define keys and an array to keep key states
-
-
-
-    window.addEventListener("resize", (event) => {
-      resize()
-    });
+      avatar.movement(keyState)       
+    }); 
+    resize()     
 })
+function addEvents() {
+  window.addEventListener("keydown", (e: any)=>{
+    keyEventLogger(e, true)  
+    avatar.movingStateChecker(e.keyCode, true) 
+  });
+  window.addEventListener("keyup",  (e: any)=>{
+    keyEventLogger(e, false)
+    avatar.movingStateChecker(e.keyCode, false)
+  });
+  window.addEventListener("resize", (event) => {
+    resize()
+  });
 
-function movingStateChecker(key: number, keyDown: boolean) {
-  let moving = false
-  keyState.forEach((state,index) => {
-    if(state === true && (index=== KEY_LEFT || index === KEY_RIGHT || index === KEY_DOWN || index === KEY_UP)){
-      moving = true
-    }
-  })
-  if(moving){
-    avatarContainer.removeChild(idleAvatar)
-    avatarContainer.addChild(animatedAvatar);
-    avatarContainer.addChildAt(basicAttack,1)
-    animatedAvatar.play()
-  }else{
-    avatarContainer.removeChild(animatedAvatar);
-    avatarContainer.addChild(idleAvatar);
-    avatarContainer.addChildAt(basicAttack,1)
-    idleAvatar.play()
-  }
-  if(keyDown){
-    if(key === KEY_RIGHT){
-      avatarContainer.scale.x = Math.abs(avatarContainer.scale.x)
-    }else if(key === KEY_LEFT){
-      avatarContainer.scale.x = -Math.abs(avatarContainer.scale.x)
-    }
-  } else{
-    if(key === KEY_RIGHT && keyState[KEY_LEFT] === true){
-      avatarContainer.scale.x = -Math.abs(avatarContainer.scale.x)
-    }else if(key === KEY_LEFT && keyState[KEY_RIGHT] === true){
-      avatarContainer.scale.x = Math.abs(avatarContainer.scale.x)
-    }
-  }
-}
-function movement(bunny: Container) {
-  if (keyState[KEY_UP]) {
-       (rockBackground.y < bunny.y - bunny.height/2) && (bunny.y -= MOVE_SPEED);
-      } 
-      if (keyState[KEY_DOWN]) {
-        (rockBackground.height + rockBackground.y >= bunny.y + bunny.height / 2) && (bunny.y += MOVE_SPEED);
-      }
-      if (keyState[KEY_LEFT]) {
-        (rockBackground.x <= bunny.x - bunny.width / 3) && (bunny.x -= MOVE_SPEED);          
-      }
-      if (keyState[KEY_RIGHT]) {
-        (rockBackground.width + rockBackground.x >= bunny.x + bunny.width / 3) && (bunny.x += MOVE_SPEED);
-      }
 }
 async function preload() {
   const assets = [ 
@@ -174,8 +84,8 @@ function loadAnimations(animationFormat: string): AnimatedSprite {
   return new AnimatedSprite(frames)
 }
 function resize(){
-  gameScale = innerWidth / 1920
-  app.renderer.resize(innerWidth, innerHeight * gameScale)
+  gameScale = innerWidth / gameConfigStore.width
+  app.renderer.resize(innerWidth, gameConfigStore.height * innerWidth / gameConfigStore.width)
   app.stage.scale.set(gameScale)
 }
 </script>
