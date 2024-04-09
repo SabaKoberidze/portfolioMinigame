@@ -6,19 +6,26 @@ export class Avatar {
     private _walkingAnimation: AnimatedSprite
     private _idleAnimation: AnimatedSprite
     private _basicAttack: AnimatedSprite
+    private _avatarJump: AnimatedSprite
     private _avatarContainer: Container
+    private _direction: boolean
+    private _isJumping: boolean
+    private _moving: boolean
     private _moveSpeed = 6
     private KEY_UP = 38;
     private KEY_DOWN = 40;
     private KEY_LEFT = 37;
     private KEY_RIGHT = 39;
     private SPACEBAR = 32;
+    private F = 70
     private keyState: any[] = [];
-    constructor(app: Application ,walkingAnimation: AnimatedSprite, idleAnimation: AnimatedSprite,  basicAttack: AnimatedSprite){
+    private _onBasicAttack: () => void;
+    constructor(app: Application ,walkingAnimation: AnimatedSprite, idleAnimation: AnimatedSprite,  basicAttack: AnimatedSprite, avatarJump:AnimatedSprite){
         this._app = app
         this._walkingAnimation = walkingAnimation
         this._idleAnimation = idleAnimation
         this._basicAttack = basicAttack
+        this._avatarJump = avatarJump
         this._gameConfigStore = gameConfig()
         this._createAvatar()
     }
@@ -36,13 +43,24 @@ export class Avatar {
 
         this._idleAnimation.anchor.set(0.5,0.5)
         this._idleAnimation.animationSpeed = 0.05        
+
+        this._avatarJump.anchor.set(0.5,0.5)
+        this._avatarJump.animationSpeed = 0.5
+        this._avatarJump.loop = false  
+        this._avatarJump.onComplete = () => {
+          this._isJumping = false
+          this._avatarJump.alpha = 0
+          this._moveSpeed = 6
+          this._animationManager()
+        }  
+
         this._avatarContainer.addChild(this._idleAnimation)    
             
         this._basicAttack.anchor.set(0, 0.5)
-        this._basicAttack.scale.set(1.05, 1)
+        this._basicAttack.scale.set(1, 1)
         this._basicAttack.alpha = 0
         this._basicAttack.x = 0
-        this._basicAttack.y = this._avatarContainer.scale.y * 15
+        this._basicAttack.y = 0
         this._basicAttack.loop = false
         this._basicAttack.animationSpeed = 1.5 
         this._basicAttack.onComplete = () => { 
@@ -53,43 +71,45 @@ export class Avatar {
     }
 
     public movingStateChecker(key: number, keyDown: boolean) {
-        if(this.keyState[this.SPACEBAR]) {
+      console.log(key)
+        if(key === this.SPACEBAR && !keyDown) {
+            this._playAvatarJump()   
+        }else if(key === this.F && !keyDown){
             this._playBasicAttack()   
         }
-        console.log(key)
-        let moving = false
+        this._moving = false
         this.keyState.forEach((state,index) => {
           if(state === true && (index=== this.KEY_LEFT || index === this.KEY_RIGHT || index === this.KEY_DOWN || index === this.KEY_UP)){
-            moving = true
+            this._moving  = true
           }
         })
-        if(moving){
-            this._avatarContainer.removeChild(this._idleAnimation)
-            this._avatarContainer.addChild( this._walkingAnimation);
-            this._avatarContainer.addChildAt( this._basicAttack,1)
-            this._walkingAnimation.play()
-        }else{
-            this._avatarContainer.removeChild( this._walkingAnimation);
-            this._avatarContainer.addChild(this._idleAnimation);
-            this._avatarContainer.addChildAt( this._basicAttack,1)
-            this._idleAnimation.play()
-        }
+
+
+       this._animationManager()
+
+
         if(keyDown){
           if(key === this.KEY_RIGHT){
-            this._avatarContainer.scale.x = Math.abs(this._avatarContainer.scale.x)
+            this._direction = true
           }else if(key === this.KEY_LEFT){
-            this._avatarContainer.scale.x = -Math.abs(this._avatarContainer.scale.x)
+            this._direction = false
           }
         } else{
           if(key === this.KEY_RIGHT && this.keyState[this.KEY_LEFT] === true){
-            this._avatarContainer.scale.x = -Math.abs(this._avatarContainer.scale.x)
+            this._direction = false         
           }else if(key === this.KEY_LEFT && this.keyState[this.KEY_RIGHT] === true){
-            this._avatarContainer.scale.x = Math.abs(this._avatarContainer.scale.x)
+            this._direction = true           
           }
+        }
+        if(!this._direction){
+          this._avatarContainer.scale.x = -Math.abs(this._avatarContainer.scale.x)
+        }else{
+          this._avatarContainer.scale.x = Math.abs(this._avatarContainer.scale.x)
         }
     }
     public movement(keyState: boolean[]) {
     this.keyState = keyState
+    this._avatarContainer.zIndex = this._avatarContainer.y + (this._avatarContainer.height / 2)
     if (this.keyState[this.KEY_UP]) {
             (this._avatarContainer.y -= this._moveSpeed);
         } 
@@ -103,9 +123,49 @@ export class Avatar {
             (this._avatarContainer.x += this._moveSpeed);
         }
     }
-    private _playBasicAttack(){       
-    this._basicAttack.alpha = 1
-    !this._basicAttack.playing &&  this._basicAttack.gotoAndPlay(0)              
+    private _playBasicAttack(){         
+      if(!this._basicAttack.playing){
+        this._basicAttack.alpha = 1
+        this._basicAttack.gotoAndPlay(0)     
+        this._onBasicAttack()      
+      }            
     }
-      
+    private _playAvatarJump(){     
+      if(!this._avatarJump.playing)  {
+        this._isJumping = true
+        this._avatarJump.alpha = 1
+        this._avatarJump.gotoAndPlay(0)     
+        this._moveSpeed = 20
+      }
+    
+      //this._onBasicAttack()        
+    }
+    private _animationManager(){
+      if(this._isJumping){
+        this._avatarContainer.removeChild(this._idleAnimation)
+        this._avatarContainer.removeChild( this._walkingAnimation)
+        this._avatarContainer.addChild( this._avatarJump);
+      }else if(this._moving){
+          this._avatarContainer.removeChild(this._idleAnimation)
+          this._avatarContainer.addChild( this._walkingAnimation);
+          this._walkingAnimation.play()
+      }else{
+          this._avatarContainer.removeChild( this._walkingAnimation);
+          this._avatarContainer.addChild(this._idleAnimation);
+          this._idleAnimation.play()
+      }
+      this._avatarContainer.addChildAt( this._basicAttack,1)
+    }
+    public getHitBox(){
+      return {
+        x: this._avatarContainer.x,
+        y: this._avatarContainer.y + (this._avatarContainer.height / 2),
+        direction: this._direction,
+        width: this._avatarContainer.width,
+        hitWidth: this._basicAttack.width        
+      }
+    }
+    public onBasicAttack(callback: () => void){
+      this._onBasicAttack = callback
+    } 
 }
