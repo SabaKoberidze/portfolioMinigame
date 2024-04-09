@@ -12,12 +12,11 @@ export class Avatar {
     private _isJumping: boolean
     private _moving: boolean
     private _moveSpeed = 6
-    private KEY_UP = 38;
-    private KEY_DOWN = 40;
-    private KEY_LEFT = 37;
-    private KEY_RIGHT = 39;
+    private KEY_UP = 87;
+    private KEY_DOWN = 83;
+    private KEY_LEFT = 65;
+    private KEY_RIGHT = 68;
     private SPACEBAR = 32;
-    private F = 70
     private keyState: any[] = [];
     private _onBasicAttack: () => void;
     constructor(app: Application ,walkingAnimation: AnimatedSprite, idleAnimation: AnimatedSprite,  basicAttack: AnimatedSprite, avatarJump:AnimatedSprite){
@@ -39,7 +38,7 @@ export class Avatar {
         
         
         this._walkingAnimation.anchor.set(0.5,0.5)
-        this._walkingAnimation.animationSpeed = this._moveSpeed/10 
+        this._walkingAnimation.animationSpeed = Math.abs(this._moveSpeed/10) 
 
         this._idleAnimation.anchor.set(0.5,0.5)
         this._idleAnimation.animationSpeed = 0.05        
@@ -71,12 +70,9 @@ export class Avatar {
     }
 
     public movingStateChecker(key: number, keyDown: boolean) {
-      console.log(key)
-        if(key === this.SPACEBAR && !keyDown) {
+        if(key === this.SPACEBAR && keyDown) {
             this._playAvatarJump()   
-        }else if(key === this.F && !keyDown){
-            this._playBasicAttack()   
-        }
+        }                   
         this._moving = false
         this.keyState.forEach((state,index) => {
           if(state === true && (index=== this.KEY_LEFT || index === this.KEY_RIGHT || index === this.KEY_DOWN || index === this.KEY_UP)){
@@ -85,29 +81,22 @@ export class Avatar {
         })
 
 
-       this._animationManager()
-
-
-        if(keyDown){
-          if(key === this.KEY_RIGHT){
-            this._direction = true
-          }else if(key === this.KEY_LEFT){
-            this._direction = false
-          }
-        } else{
-          if(key === this.KEY_RIGHT && this.keyState[this.KEY_LEFT] === true){
-            this._direction = false         
-          }else if(key === this.KEY_LEFT && this.keyState[this.KEY_RIGHT] === true){
-            this._direction = true           
-          }
-        }
-        if(!this._direction){
-          this._avatarContainer.scale.x = -Math.abs(this._avatarContainer.scale.x)
-        }else{
-          this._avatarContainer.scale.x = Math.abs(this._avatarContainer.scale.x)
-        }
+       this._animationManager()              
     }
-    public movement(keyState: boolean[]) {
+    public movement(keyState: boolean[], cursor: {x: number, y:number}) {
+
+
+    (cursor.x > this._avatarContainer.x ?  this._direction = true : this._direction = false)
+    if(!this._direction){
+      this._avatarContainer.scale.x = -Math.abs(this._avatarContainer.scale.x)
+      this._walkingAnimation.animationSpeed =  -this._moveSpeed/10
+    }else{
+      this._avatarContainer.scale.x = Math.abs(this._avatarContainer.scale.x)
+      this._walkingAnimation.animationSpeed =  this._moveSpeed/10
+    }
+
+
+
     this.keyState = keyState
     this._avatarContainer.zIndex = this._avatarContainer.y + (this._avatarContainer.height / 2)
     if (this.keyState[this.KEY_UP]) {
@@ -123,7 +112,7 @@ export class Avatar {
             (this._avatarContainer.x += this._moveSpeed);
         }
     }
-    private _playBasicAttack(){         
+    public playBasicAttack(){         
       if(!this._basicAttack.playing){
         this._basicAttack.alpha = 1
         this._basicAttack.gotoAndPlay(0)     

@@ -14,7 +14,8 @@ let pixiContainer = ref()
 let gameScale: number
 let gameWidth: number 
 let gameHeight: number
-var keyState: any[] = [];
+let keyState: any[] = [];
+let cursor: {x: number, y: number}={x:0,y:0}
 let app: Application
 let avatar: Avatar
 let enemy: Enemy
@@ -43,6 +44,12 @@ onMounted(async () => {
       });
     pixiContainer.value.appendChild(app.canvas);
     await preload()
+    app.stage.interactive = true
+    app.stage.on("pointermove", (e)=>{
+      let pos = e.global 
+      cursor.x = pos.x / gameScale
+      cursor.y = pos.y / gameScale
+    })
     backgrounds = new Backgrounds(app)
     avatar = new Avatar(app, animatedAvatar, idleAvatar, basicAttack, avatarJump)
     avatar.onBasicAttack(()=>{
@@ -53,7 +60,7 @@ onMounted(async () => {
           console.log('hit')
         }
       }else{
-        if(avatarHitBox.x >= enemyHitBox.x && avatarHitBox.x - avatarHitBox.hitWidth > enemyHitBox.x + enemyHitBox.width / 2  && Math.abs(avatarHitBox.y - enemyHitBox.y) < 100){
+        if(avatarHitBox.x >= enemyHitBox.x && avatarHitBox.x - avatarHitBox.hitWidth < enemyHitBox.x + enemyHitBox.width / 2  && Math.abs(avatarHitBox.y - enemyHitBox.y) < 100){
           console.log('hit')
         }
       }
@@ -62,7 +69,7 @@ onMounted(async () => {
     enemy.createEnemy(Enums.EnemyType.Knight)
     addEvents()
     app.ticker.add(() => {
-      avatar.movement(keyState)       
+      avatar.movement(keyState, cursor)       
     }); 
     resize()     
 })
@@ -74,6 +81,10 @@ function addEvents() {
   window.addEventListener("keyup",  (e: any)=>{
     keyEventLogger(e, false)
     avatar.movingStateChecker(e.keyCode, false)
+  });
+  window.addEventListener("click",  (e: any)=>{
+    keyEventLogger(e, false)
+    avatar.playBasicAttack()
   });
   window.addEventListener("resize", (event) => {
     resize()
