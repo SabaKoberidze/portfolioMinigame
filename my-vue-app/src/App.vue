@@ -69,8 +69,8 @@ onMounted(async () => {
     enemy = new Enemy(app, knightIdle)
     enemy.createEnemy(Enums.EnemyType.Knight)
     addEvents()
-    app.ticker.add(() => {
-      avatar.movement(keyState, cursor)       
+    app.ticker.add((delta) => {
+      avatar.movement(keyState, cursor, delta)       
     }); 
     resize()     
 })
@@ -90,7 +90,11 @@ function addEvents() {
   window.addEventListener("resize", (event) => {
     resize()
   });
-
+  window.addEventListener('contextmenu', function(ev) {
+    ev.preventDefault();
+    avatar.playFireBall(cursor)
+    return false;
+  }, false);
 }
 async function preload() {
   const assets = [ 
