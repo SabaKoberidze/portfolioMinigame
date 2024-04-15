@@ -7,6 +7,7 @@ export class Avatar {
     private _idleAnimation: AnimatedSprite
     private _basicAttack: AnimatedSprite
     private _avatarJump: AnimatedSprite
+    private _avatarFireball: AnimatedSprite
     private _avatarContainer: Container
     private _direction: boolean
     private _isJumping: boolean
@@ -19,12 +20,13 @@ export class Avatar {
     private SPACEBAR = 32;
     private keyState: any[] = [];
     private _onBasicAttack: () => void;
-    constructor(app: Application ,walkingAnimation: AnimatedSprite, idleAnimation: AnimatedSprite,  basicAttack: AnimatedSprite, avatarJump:AnimatedSprite){
+    constructor(app: Application ,walkingAnimation: AnimatedSprite, idleAnimation: AnimatedSprite,  basicAttack: AnimatedSprite, avatarJump:AnimatedSprite, avatarFireBall: AnimatedSprite){
         this._app = app
         this._walkingAnimation = walkingAnimation
         this._idleAnimation = idleAnimation
         this._basicAttack = basicAttack
         this._avatarJump = avatarJump
+        this._avatarFireball = avatarFireBall
         this._gameConfigStore = gameConfig()
         this._createAvatar()
     }

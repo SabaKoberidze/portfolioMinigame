@@ -21,6 +21,7 @@ let avatar: Avatar
 let enemy: Enemy
 let backgrounds: Backgrounds
 let animatedAvatar: AnimatedSprite
+let avatarFireBall: AnimatedSprite
 let idleAvatar: AnimatedSprite
 let basicAttack: AnimatedSprite
 let avatarJump: AnimatedSprite
@@ -51,7 +52,7 @@ onMounted(async () => {
       cursor.y = pos.y / gameScale
     })
     backgrounds = new Backgrounds(app)
-    avatar = new Avatar(app, animatedAvatar, idleAvatar, basicAttack, avatarJump)
+    avatar = new Avatar(app, animatedAvatar, idleAvatar, basicAttack, avatarJump, avatarFireBall)
     avatar.onBasicAttack(()=>{
       let avatarHitBox = avatar.getHitBox()
       let enemyHitBox = enemy.getHitBox()
@@ -96,6 +97,7 @@ async function preload() {
     { alias: 'avatarIdle', src: 'assets/avatar/idleAvatar.json' }, 
     { alias: 'avatarAnim', src: 'assets/avatar/avatarWalk.json' }, 
     { alias: 'basicAttack', src: 'assets/avatar/basicAttack.json' },   
+    { alias: 'fireBall', src: 'assets/avatar/fireBall.json' },  
     { alias: 'avatarJump', src: 'assets/avatar/avatarJump.json' },   
     { alias: 'knightIdle', src: 'assets/enemy/knight/knightIdle.json' }, 
     { alias: 'rockGround', src: 'assets/backgrounds/rockGround.png' },    
@@ -108,6 +110,7 @@ async function preload() {
   animatedAvatar = loadAnimations('avatarAnim') 
   idleAvatar = loadAnimations('avatarIdle')
   avatarJump = loadAnimations('avatarJump')
+  avatarFireBall = loadAnimations('fireBall')
   basicAttack = loadAnimations('basicAttack')
 }
 function loadAnimations(animationFormat: string): AnimatedSprite {
