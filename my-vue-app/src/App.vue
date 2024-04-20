@@ -21,7 +21,6 @@ let avatar: Avatar
 let enemy: Enemy
 let backgrounds: Backgrounds
 let animatedAvatar: AnimatedSprite
-let avatarFireBall: AnimatedSprite
 let idleAvatar: AnimatedSprite
 let basicAttack: AnimatedSprite
 let avatarJump: AnimatedSprite
@@ -52,7 +51,7 @@ onMounted(async () => {
       cursor.y = pos.y / gameScale
     })
     backgrounds = new Backgrounds(app)
-    avatar = new Avatar(app, animatedAvatar, idleAvatar, basicAttack, avatarJump, avatarFireBall)
+    avatar = new Avatar(app, animatedAvatar, idleAvatar, basicAttack, avatarJump)
     avatar.onBasicAttack(()=>{
       let avatarHitBox = avatar.getHitBox()
       let enemyHitBox = enemy.getHitBox()
@@ -92,7 +91,8 @@ function addEvents() {
   });
   window.addEventListener('contextmenu', function(ev) {
     ev.preventDefault();
-    avatar.playFireBall(cursor)
+    let fireBall = loadAnimations('fireBall')
+    avatar.playFireBall(cursor, fireBall)
     return false;
   }, false);
 }
@@ -114,7 +114,6 @@ async function preload() {
   animatedAvatar = loadAnimations('avatarAnim') 
   idleAvatar = loadAnimations('avatarIdle')
   avatarJump = loadAnimations('avatarJump')
-  avatarFireBall = loadAnimations('fireBall')
   basicAttack = loadAnimations('basicAttack')
 }
 function loadAnimations(animationFormat: string): AnimatedSprite {

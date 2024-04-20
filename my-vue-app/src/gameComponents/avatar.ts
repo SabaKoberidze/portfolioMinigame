@@ -1,5 +1,7 @@
 import { AnimatedSprite, Application, Assets, Container, Sprite, Texture} from 'pixi.js';
 import { gameConfig } from '../stores/gameConfigStore'
+import { Projectile } from './projectile';
+import * as Enums from '../enums'
 export class Avatar {
     private _app: Application
     private _gameConfigStore: any
@@ -7,13 +9,13 @@ export class Avatar {
     private _idleAnimation: AnimatedSprite
     private _basicAttack: AnimatedSprite
     private _avatarJump: AnimatedSprite
-    private _fireball: AnimatedSprite
+    private _avatarFireball: AnimatedSprite
+    private _projectiles: Projectile[] = [];
     private _avatarContainer: Container
     private _direction: boolean
     private _isJumping: boolean
     private _moving: boolean
     private _moveSpeed = 6
-    private _fireBallSpeed = 15
     private KEY_UP = 87;
     private KEY_DOWN = 83;
     private KEY_LEFT = 65;
@@ -21,15 +23,13 @@ export class Avatar {
     private SPACEBAR = 32;
     private keyState: any[] = [];
     private _onBasicAttack: () => void;
-    private _destination: {x: number, y: number} = {x: 0, y:0};
-    private _startPosition:  {x: number, y: number} = {x: 0, y:0};
-    constructor(app: Application ,walkingAnimation: AnimatedSprite, idleAnimation: AnimatedSprite,  basicAttack: AnimatedSprite, avatarJump:AnimatedSprite, avatarFireBall: AnimatedSprite){
+   
+    constructor(app: Application ,walkingAnimation: AnimatedSprite, idleAnimation: AnimatedSprite,  basicAttack: AnimatedSprite, avatarJump:AnimatedSprite){
         this._app = app
         this._walkingAnimation = walkingAnimation
         this._idleAnimation = idleAnimation
         this._basicAttack = basicAttack
-        this._avatarJump = avatarJump
-        this._fireball = avatarFireBall
+        this._avatarJump = avatarJump    
         this._gameConfigStore = gameConfig()
         this._createAvatar()
     }
@@ -71,18 +71,7 @@ export class Avatar {
       this._basicAttack.zIndex = 2
       this._basicAttack.onComplete = () => { 
           this._basicAttack.alpha = 0
-      }       
-      this._fireball.anchor.set(0.5, 0.5)
-      this._fireball.scale.set(1.5)
-      this._fireball.alpha = 0
-      this._fireball.x = 0
-      this._fireball.y = 0
-      this._fireball.animationSpeed = 0.5
-      this._fireball.zIndex = 1
-      this._fireball.onComplete = () => { 
-        this._basicAttack.alpha = 0
-      }
-      this._app.stage.addChildAt(this._fireball, 1)  
+      }             
       this._idleAnimation.play()
     }
 
@@ -111,7 +100,6 @@ export class Avatar {
       }
       this.keyState = keyState
       this._avatarContainer.zIndex = this._avatarContainer.y + (this._avatarContainer.height / 2)
-      this._fireball.zIndex = this._avatarContainer.y + this._avatarContainer.height / 2 + 1
       if (this.keyState[this.KEY_UP]) {
           (this._avatarContainer.y -= this._moveSpeed);
       } 
@@ -124,16 +112,11 @@ export class Avatar {
       if (this.keyState[this.KEY_RIGHT]) {
           (this._avatarContainer.x += this._moveSpeed);
       }
-
-      if(this._fireball.playing){
-        let dx = (this._destination.x - this._startPosition.x);
-        let dy = ( this._destination.y - this._startPosition.y);
-        let distance =  Math.sqrt(dx * dx + dy * dy);
-        let xSpeed = dx / distance;
-        let ySpeed = dy / distance;  
-        this._fireball.x += this._fireBallSpeed * xSpeed * delta.deltaTime;
-        this._fireball.y += this._fireBallSpeed * ySpeed * delta.deltaTime;
-      }
+      
+      this._projectiles.forEach((projectile: Projectile)=>{
+          projectile.setZindex(this._avatarContainer.y + this._avatarContainer.height/2 + 1)
+          projectile.moveProjectile(delta)
+      })
     }
     public playBasicAttack(){         
       if(!this._basicAttack.playing){
@@ -142,18 +125,10 @@ export class Avatar {
         this._onBasicAttack()      
       }            
     }
-    public playFireBall(cursor){
-      console.log(cursor)
-      if(!this._fireball.playing){
-        this._fireball.alpha = 1
-        this._fireball.x = this._avatarContainer.x
-        this._fireball.y = this._avatarContainer.y  
-        this._startPosition.x = this._avatarContainer.x 
-        this._startPosition.y = this._avatarContainer.y
-        this._destination.x = cursor.x
-        this._destination.y = cursor.y
-        this._fireball.gotoAndPlay(0)    
-      } 
+    public playFireBall(cursor, fireball){
+      let fireballAnim = new Projectile(this._app, fireball, 10, Enums.ProjectileType.Avatar)
+      fireballAnim.setDestination(cursor, {x: this._avatarContainer.x, y:this._avatarContainer.y})
+      this._projectiles.push(fireballAnim)
     }
     private _playAvatarJump(){     
       if(!this._avatarJump.playing)  {
