@@ -23,6 +23,9 @@ export class Avatar {
     private SPACEBAR = 32;
     private keyState: any[] = [];
     private _onBasicAttack: () => void;
+    private _hp: number = 5
+    private _hitFlashTimer: number = 0
+    private _knockbackVelocity: {x: number, y: number} = {x: 0, y: 0}
    
     constructor(app: Application ,walkingAnimation: AnimatedSprite, idleAnimation: AnimatedSprite,  basicAttack: AnimatedSprite, avatarJump:AnimatedSprite){
         this._app = app
@@ -37,8 +40,8 @@ export class Avatar {
       this._avatarContainer = new Container()
       this._app.stage.addChild(this._avatarContainer)
       this._avatarContainer.scale.set(1)
-      // this._avatarContainer.x = this._gameConfigStore.width/2 -  (this._avatarContainer.width)/ 2
-      // this._avatarContainer.y = this._gameConfigStore.height/2 -  (this._avatarContainer.height) / 2
+      this._avatarContainer.x = this._gameConfigStore.width / 2
+      this._avatarContainer.y = this._gameConfigStore.height / 2
       this._avatarContainer.sortableChildren = true 
       this._avatarContainer.zIndex = 1
       
@@ -107,16 +110,34 @@ export class Avatar {
           (this._avatarContainer.y += this._moveSpeed);
       }
       if (this.keyState[this.KEY_LEFT]) {
-          (this._avatarContainer.x -= this._moveSpeed);          
+          (this._avatarContainer.x -= this._moveSpeed);
       }
       if (this.keyState[this.KEY_RIGHT]) {
           (this._avatarContainer.x += this._moveSpeed);
       }
-      
+
+      // Apply knockback with friction
+      this._avatarContainer.x += this._knockbackVelocity.x
+      this._avatarContainer.y += this._knockbackVelocity.y
+      this._knockbackVelocity.x *= 0.82
+      this._knockbackVelocity.y *= 0.82
+      if (Math.abs(this._knockbackVelocity.x) < 0.5) this._knockbackVelocity.x = 0
+      if (Math.abs(this._knockbackVelocity.y) < 0.5) this._knockbackVelocity.y = 0
+
       this._projectiles.forEach((projectile: Projectile)=>{
           projectile.setZindex(this._avatarContainer.y + this._avatarContainer.height/2 + 1)
           projectile.moveProjectile(delta)
       })
+
+      // Hit flash countdown
+      if(this._hitFlashTimer > 0) {
+          this._hitFlashTimer--
+          if(this._hitFlashTimer <= 0) {
+              this._walkingAnimation.tint = 0xFFFFFF
+              this._idleAnimation.tint = 0xFFFFFF
+              this._avatarJump.tint = 0xFFFFFF
+          }
+      }
     }
     public playBasicAttack(){         
       if(!this._basicAttack.playing){
@@ -167,5 +188,28 @@ export class Avatar {
     }
     public onBasicAttack(callback: () => void){
       this._onBasicAttack = callback
-    } 
+    }
+
+    public takeDamage(amount: number, enemyPos: {x: number, y: number}) {
+        this._hp -= amount
+        this._hitFlashTimer = 14
+        this._walkingAnimation.tint = 0xFF4444
+        this._idleAnimation.tint = 0xFF4444
+        this._avatarJump.tint = 0xFF4444
+        // Knock back away from the enemy
+        const dir = this._avatarContainer.x > enemyPos.x ? 1 : -1
+        this._knockbackVelocity.x = dir * 18
+        this._knockbackVelocity.y = -6
+    }
+
+    public getHp() { return this._hp }
+
+    public isDashing() { return this._isJumping }
+
+    public getPosition() {
+        return {
+            x: this._avatarContainer.x,
+            y: this._avatarContainer.y
+        }
+    }
 }

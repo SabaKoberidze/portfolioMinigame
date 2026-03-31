@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { AnimatedSprite, Application, Assets, Sprite, Texture} from 'pixi.js';
+import { AnimatedSprite, Application, Assets, Graphics, Sprite, Text, Texture} from 'pixi.js';
 import {ref, onMounted } from 'vue';
 import { Avatar } from './gameComponents/avatar';
 import {Backgrounds} from './gameComponents/background'
@@ -18,7 +18,7 @@ let keyState: any[] = [];
 let cursor: {x: number, y: number}={x:0,y:0}
 let app: Application
 let avatar: Avatar
-let enemy: Enemy
+let enemies: Enemy[] = []
 let backgrounds: Backgrounds
 let animatedAvatar: AnimatedSprite
 let idleAvatar: AnimatedSprite
@@ -28,6 +28,9 @@ let knightIdle: AnimatedSprite
 let gameConfigStore = gameConfig()
 gameWidth = gameConfigStore.width
 gameHeight = gameConfigStore.height
+let playerHpText: Text
+let enemyCountText: Text
+let gameOver = false
 
 const keyEventLogger =  function (e: any, type: boolean) { 
   (keyState[e.keyCode] as any) = e.type == 'keydown';  
@@ -53,26 +56,106 @@ onMounted(async () => {
     backgrounds = new Backgrounds(app)
     avatar = new Avatar(app, animatedAvatar, idleAvatar, basicAttack, avatarJump)
     avatar.onBasicAttack(()=>{
-      let avatarHitBox = avatar.getHitBox()
-      let enemyHitBox = enemy.getHitBox()
-      if(avatarHitBox.direction){
-        if(avatarHitBox.x <= enemyHitBox.x  && avatarHitBox.x + avatarHitBox.hitWidth > enemyHitBox.x - enemyHitBox.width / 2 && Math.abs(avatarHitBox.y - enemyHitBox.y) < 100){
-          console.log('hit')
+      const avatarHitBox = avatar.getHitBox()
+      for(const e of enemies) {
+        if(e.getHp() <= 0) continue
+        const enemyHitBox = e.getHitBox()
+        let hit = false
+        if(avatarHitBox.direction){
+          if(avatarHitBox.x <= enemyHitBox.x && avatarHitBox.x + avatarHitBox.hitWidth > enemyHitBox.x - enemyHitBox.width / 2 && Math.abs(avatarHitBox.y - enemyHitBox.y) < 100){
+            hit = true
+          }
+        }else{
+          if(avatarHitBox.x >= enemyHitBox.x && avatarHitBox.x - avatarHitBox.hitWidth < enemyHitBox.x + enemyHitBox.width / 2 && Math.abs(avatarHitBox.y - enemyHitBox.y) < 100){
+            hit = true
+          }
         }
-      }else{
-        if(avatarHitBox.x >= enemyHitBox.x && avatarHitBox.x - avatarHitBox.hitWidth < enemyHitBox.x + enemyHitBox.width / 2  && Math.abs(avatarHitBox.y - enemyHitBox.y) < 100){
-          console.log('hit')
+        if(hit) {
+          e.takeDamage(1, avatarHitBox.x)
+          if(e.getHp() <= 0) {
+            e.destroy()
+            enemies.splice(enemies.indexOf(e), 1)
+            enemyCountText.text = `Enemies: ${enemies.length}`
+            setTimeout(() => { if(!gameOver) spawnEnemies(1) }, 3000)
+          }
         }
       }
     })
-    enemy = new Enemy(app, knightIdle)
-    enemy.createEnemy(Enums.EnemyType.Knight)
+
+    spawnEnemies(8)
+
+    // HP display texts
+    playerHpText = new Text({ text: 'HP: 5', style: { fill: 0x00ff00, fontSize: 32, fontWeight: 'bold', stroke: { color: 0x000000, width: 4 } } })
+    playerHpText.x = 20
+    playerHpText.y = 20
+    playerHpText.zIndex = 9999
+    app.stage.addChild(playerHpText)
+
+    enemyCountText = new Text({ text: `Enemies: ${enemies.length}`, style: { fill: 0xff4444, fontSize: 32, fontWeight: 'bold', stroke: { color: 0x000000, width: 4 } } })
+    enemyCountText.x = gameWidth - 220
+    enemyCountText.y = 20
+    enemyCountText.zIndex = 9999
+    app.stage.addChild(enemyCountText)
+
     addEvents()
     app.ticker.add((delta) => {
-      avatar.movement(keyState, cursor, delta)       
-    }); 
-    resize()     
+      if(gameOver) return
+      avatar.movement(keyState, cursor, delta)
+      const playerPos = avatar.getPosition()
+      const dashing = avatar.isDashing()
+      for(const e of enemies) {
+        if(e.getHp() <= 0) continue
+        const playerHit = e.update(delta, playerPos)
+        if(playerHit && !dashing) {
+          avatar.takeDamage(1, e.getPosition())
+          const newHp = avatar.getHp()
+          playerHpText.text = `HP: ${newHp}`
+          if(newHp <= 0) { showEndScreen(false); return }
+        }
+      }
+    });
+    resize()
 })
+function spawnEnemies(count: number) {
+  for(let i = 0; i < count; i++) {
+    const knightAnim = loadAnimations('knightIdle')
+    const e = new Enemy(app, knightAnim)
+    // Spawn at random screen edges so they close in on the player
+    let x: number, y: number
+    if(Math.random() < 0.5) {
+      x = Math.random() < 0.5 ? 60 : gameWidth - 60
+      y = 80 + Math.random() * (gameHeight - 160)
+    } else {
+      x = 80 + Math.random() * (gameWidth - 160)
+      y = Math.random() < 0.5 ? 60 : gameHeight - 60
+    }
+    e.createEnemy(Enums.EnemyType.Knight, x, y)
+    enemies.push(e)
+    if(enemyCountText) enemyCountText.text = `Enemies: ${enemies.length}`
+  }
+}
+function showEndScreen(won: boolean) {
+  gameOver = true
+  const overlay = new Graphics()
+  overlay.rect(0, 0, gameWidth, gameHeight).fill({ color: 0x000000, alpha: 0.6 })
+  overlay.zIndex = 10000
+  app.stage.addChild(overlay)
+
+  const label = new Text({
+    text: won ? 'YOU WIN!' : 'YOU LOSE',
+    style: {
+      fill: won ? 0xFFD700 : 0xFF4444,
+      fontSize: 120,
+      fontWeight: 'bold',
+      stroke: { color: 0x000000, width: 8 }
+    }
+  })
+  label.anchor.set(0.5)
+  label.x = gameWidth / 2
+  label.y = gameHeight / 2
+  label.zIndex = 10001
+  app.stage.addChild(label)
+}
 function addEvents() {
   window.addEventListener("keydown", (e: any)=>{
     keyEventLogger(e, true)  
